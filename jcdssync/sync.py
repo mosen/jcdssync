@@ -1,17 +1,17 @@
 from __future__ import print_function
-from typing import Union, Optional, Tuple, List
+from typing import Union, Optional, Tuple, List, Dict
 from urllib.parse import urlparse
 import jss
-from xml.etree import ElementTree
 import os.path
 import logging
-from jss.distribution_point import JCDS, FileRepository
+from jss.distribution_point import JCDS
 import requests
 import hashlib
 
 # From, To
 CopyOperation = Tuple[str, str]
 CopyOperations = List[CopyOperation]
+CasperDictOrPath = Union[str, Dict[str, str]]
 
 
 def block_generator(handle, block_size=65536):
@@ -24,6 +24,37 @@ def block_generator(handle, block_size=65536):
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_checksum(f):  # type: (CasperDictOrPath) -> str
+    """Get the checksum from a filesystem path OR a dict containing a checksum"""
+    if isinstance(f, str):
+        hasher = hashlib.md5()
+        for block in block_generator(open(f, 'rb')):
+            hasher.update(block)
+
+        return hasher.hexdigest()
+    else:
+        return f['checksum']
+
+
+def needs_sync(a, b):  # type: (CasperDictOrPath, CasperDictOrPath) -> bool
+    """Check whether the source file indicated by `a` needs to be synced to the location pointed to by `b`.
+
+    The parameters of the function can be absolute paths to local files, or dicts containing information about a file
+    that have been extracted from the Casper.jxml endpoint.
+
+    :param (str or dict) a: Source file, absolute path (must exist) or dict
+    :param (str or dict) b: Destination file, absolute path (may not exist) or dict
+    """
+    if isinstance(b, str):
+        if not os.path.exists(b):
+            return True
+
+    b_digest = get_checksum(b)
+    a_digest = get_checksum(a)
+
+    return a_digest != b_digest
 
 
 class SyncOperation:
@@ -76,22 +107,8 @@ class SyncOperation:
         for p in src_pkgs:
             destination_filename = os.path.join(self.destination, p['filename'])
 
-            # Missing in destination? just download/upload
-            if not os.path.exists(destination_filename):
+            if needs_sync(p, destination_filename):
                 operations.append((p['fileURL'], destination_filename,))
-                continue
-
-            # Confirm checksum is valid, if not, overwrite
-            hasher = hashlib.md5()
-            for block in block_generator(open(destination_filename, 'rb')):
-                hasher.update(block)
-
-            if hasher.hexdigest() != p['checksum']:
-                logger.info("checksum mismatch in filename: %s, source=%s, destination=%s", p['filename'],
-                            p['checksum'], hasher.hexdigest())
-                operations.append((p['fileURL'], destination_filename,))
-            else:
-                logger.debug("checksum match in filename: %s", p['filename'])
 
         return operations
 
