@@ -23,9 +23,6 @@ def block_generator(handle, block_size=65536):
             block = handle.read(block_size)
 
 
-logger = logging.getLogger(__name__)
-
-
 def get_checksum(f):  # type: (CasperDictOrPath) -> str
     """Get the checksum from a filesystem path OR a dict containing a checksum"""
     if isinstance(f, str):
@@ -65,7 +62,13 @@ class SyncOperation:
             destination: str,
             delete: bool=False,
             username: Optional[str]=None,
-            password: Optional[str]=None):
+            password: Optional[str]=None,
+            logger=None,
+    ):
+        if logger is not None:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger("SyncOperation")
 
         source_url = urlparse(source)
         if source_url.scheme == 'https' or source_url.scheme == 'http':
@@ -115,9 +118,9 @@ class SyncOperation:
     def run(self, operations):  # type: (CopyOperations) -> None
         """Execute download/upload operations."""
         for (source, dest) in operations:
-            logging.debug("Fetching from source: %s", source)
+            self.logger.debug("Fetching from source: %s", source)
             response = requests.get(source)
-            logging.debug("Writing to destination filename: %s", dest)
+            self.logger.debug("Writing to destination filename: %s", dest)
             with open(dest, 'wb') as fd:
                 fd.write(response.content)
 

@@ -3,9 +3,6 @@ import argparse
 import logging
 from jcdssync.sync import SyncOperation
 
-logging.basicConfig()
-logger = logging.getLogger("jcdssync")
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -16,8 +13,18 @@ def main():
     parser.add_argument("-d", "--delete", help="Delete extraneous files in destination", action="store_true")
     args = parser.parse_args()
 
-    op = SyncOperation(args.source, args.destination, username=args.username, password=args.password)
+    logger = logging.getLogger("jcdssync")
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    op = SyncOperation(args.source, args.destination, username=args.username, password=args.password, logger=logger)
+    logger.info("Scanning for differences between the source and destination...")
     to_copy = op.scan()
+    logger.info("There are %d file(s) to copy", len(to_copy))
     op.run(to_copy)
 
 
