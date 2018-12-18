@@ -1,6 +1,10 @@
 import os
 import argparse
+import logging
 from jcdssync.sync import SyncOperation
+
+logging.basicConfig()
+logger = logging.getLogger("jcdssync")
 
 
 def main():
@@ -12,8 +16,9 @@ def main():
     parser.add_argument("-d", "--delete", help="Delete extraneous files in destination", action="store_true")
     args = parser.parse_args()
 
-    op = SyncOperation(args.source, args.destination)
-    op.sync()
+    op = SyncOperation(args.source, args.destination, username=args.username, password=args.password)
+    to_copy = op.scan()
+    op.run(to_copy)
 
 
 if __name__ == '__main__':
