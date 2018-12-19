@@ -24,7 +24,7 @@ def block_generator(handle, block_size=65536):
 
 
 def get_checksum(f):  # type: (CasperDictOrPath) -> str
-    """Get the checksum from a filesystem path OR a dict containing a checksum"""
+    """Get the checksum from a filesystem path OR a dict containing a checksum under the key `checksum`."""
     if isinstance(f, str):
         hasher = hashlib.md5()
         for block in block_generator(open(f, 'rb')):

@@ -8,9 +8,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("source")
     parser.add_argument("destination")
-    parser.add_argument("-u", "--username", help="JAMF Pro API Username", default=os.getenv("JSS_USER"))
-    parser.add_argument("-p", "--password", help="JAMF Pro API Password", default=os.getenv("JSS_PASSWORD"))
-    parser.add_argument("-d", "--delete", help="Delete extraneous files in destination", action="store_true")
+    parser.add_argument("-u", "--username", help="JAMF Pro API Username, (falls back to env JSS_USER)",
+                        default=os.getenv("JSS_USER"))
+    parser.add_argument("-p", "--password", help="JAMF Pro API Password, (falls back to env JSS_PASSWORD)",
+                        default=os.getenv("JSS_PASSWORD"))
+    parser.add_argument("-d", "--delete", help="Delete extraneous files in destination", action="store_true",
+                        default=False)
+    parser.add_argument("-t", "--threads", help="Number of parallel download/upload threads", type=int, default=4)
+    parser.add_argument("-i", "--include", help="Include files matching the given literal or glob pattern")
+    parser.add_argument("-x", "--exclude", help="Exclude files matching the given literal or glob pattern")
     args = parser.parse_args()
 
     logger = logging.getLogger("jcdssync")
